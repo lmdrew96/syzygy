@@ -2,6 +2,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { drawCards } from "@/lib/tarot/draw";
 import { getCard } from "@/lib/tarot/majorArcana";
+import { buildGraph } from "@/lib/tarot/graph";
 import { getCurrentTransits, type TransitSnapshot } from "@/lib/stellation/client";
 
 type ReadingPageProps = {
@@ -22,6 +23,11 @@ export default async function ReadingPage({ searchParams }: ReadingPageProps) {
   } catch {
     transitError = "Couldn't reach Stellation for today's sky — is its backend running?";
   }
+
+  const edges = buildGraph(
+    drawn.map((d) => d.id),
+    transits,
+  ).sort((a, b) => b.weight - a.weight);
 
   return (
     <main className="flex flex-1 flex-col items-center px-6 py-16">
@@ -77,9 +83,37 @@ export default async function ReadingPage({ searchParams }: ReadingPageProps) {
         )}
       </section>
 
+      <section className="mt-12 w-full max-w-md">
+        <p className="text-center text-xs uppercase tracking-[0.2em] text-foreground-muted">
+          Correspondence graph
+        </p>
+        {edges.length === 0 ? (
+          <p className="mt-3 text-center text-sm text-foreground-muted">
+            No shared or opposing rulers among this draw.
+          </p>
+        ) : (
+          <ul className="mt-3 flex flex-col gap-1 text-sm text-foreground-muted">
+            {edges.map((edge) => {
+              const from = getCard(edge.from);
+              const to = getCard(edge.to);
+              return (
+                <li key={`${edge.from}-${edge.to}`} className="flex justify-between gap-4">
+                  <span>
+                    {from.name} — {to.name}
+                  </span>
+                  <span className="whitespace-nowrap text-star-gold">
+                    {edge.reason.replace("-", " ")} · {edge.weight.toFixed(1)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
       <p className="mt-10 max-w-md text-center text-sm text-foreground-muted">
-        The correspondence graph and transit-weighted edges aren&apos;t wired
-        up yet — the draw above is keyword-weighted only.
+        The live constellation walk isn&apos;t wired up yet — this is the
+        graph data it will trace.
       </p>
     </main>
   );
