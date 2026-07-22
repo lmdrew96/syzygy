@@ -6,6 +6,7 @@ import { buildGraph } from "@/lib/tarot/graph";
 import { buildWalk } from "@/lib/tarot/walk";
 import { layoutCards } from "@/lib/tarot/layout";
 import { getCurrentTransits, type TransitSnapshot } from "@/lib/stellation/client";
+import { generateInterpretation } from "@/lib/tarot/interpret";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
 
 type ReadingPageProps = {
@@ -34,6 +35,9 @@ export default async function ReadingPage({ searchParams }: ReadingPageProps) {
   const edges = buildGraph(cardIds, transits).sort((a, b) => b.weight - a.weight);
   const walk = buildWalk(cardIds, edges);
   const positions = layoutCards(cardIds, seed);
+  const walkCards = walk.map((step) => getCard(step.cardId));
+
+  const interpretation = await generateInterpretation(walkCards, transits, input, question, seed);
 
   return (
     <main className="flex flex-1 flex-col items-center px-6 py-16">
@@ -121,9 +125,14 @@ export default async function ReadingPage({ searchParams }: ReadingPageProps) {
         )}
       </section>
 
-      <p className="mt-10 max-w-md text-center text-sm text-foreground-muted">
-        Interpretive text generation isn&apos;t wired up yet.
-      </p>
+      <section className="mt-12 max-w-lg">
+        <p className="text-center text-xs uppercase tracking-[0.2em] text-foreground-muted">
+          The reading
+        </p>
+        <p className="mt-3 whitespace-pre-line text-center font-display text-lg leading-relaxed text-foreground">
+          {interpretation}
+        </p>
+      </section>
     </main>
   );
 }
