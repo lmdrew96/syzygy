@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 import { drawCards } from "@/lib/tarot/draw";
 import { getCard } from "@/lib/tarot/majorArcana";
 import { buildGraph } from "@/lib/tarot/graph";
+import { buildWalk } from "@/lib/tarot/walk";
+import { layoutCards } from "@/lib/tarot/layout";
 import { getCurrentTransits, type TransitSnapshot } from "@/lib/stellation/client";
+import { ConstellationCanvas } from "@/components/ConstellationCanvas";
 
 type ReadingPageProps = {
   searchParams: Promise<{ input?: string; question?: string }>;
@@ -13,7 +16,11 @@ export default async function ReadingPage({ searchParams }: ReadingPageProps) {
   const { input, question } = await searchParams;
   if (!input) redirect("/");
 
-  const drawn = drawCards({ inputText: input, question });
+  const dateSeed = new Date().toISOString().slice(0, 10);
+  const seed = `${input}|${question ?? ""}|${dateSeed}`;
+
+  const drawn = drawCards({ inputText: input, question, dateSeed });
+  const cardIds = drawn.map((d) => d.id);
   const cards = drawn.map((d) => getCard(d.id));
 
   let transits: TransitSnapshot | null = null;
@@ -24,10 +31,9 @@ export default async function ReadingPage({ searchParams }: ReadingPageProps) {
     transitError = "Couldn't reach Stellation for today's sky — is its backend running?";
   }
 
-  const edges = buildGraph(
-    drawn.map((d) => d.id),
-    transits,
-  ).sort((a, b) => b.weight - a.weight);
+  const edges = buildGraph(cardIds, transits).sort((a, b) => b.weight - a.weight);
+  const walk = buildWalk(cardIds, edges);
+  const positions = layoutCards(cardIds, seed);
 
   return (
     <main className="flex flex-1 flex-col items-center px-6 py-16">
@@ -43,15 +49,19 @@ export default async function ReadingPage({ searchParams }: ReadingPageProps) {
         </p>
       )}
 
-      <div className="mt-12 flex flex-wrap justify-center gap-6">
+      <div className="mt-10 w-full max-w-2xl">
+        <ConstellationCanvas cards={cards} positions={positions} walk={walk} />
+      </div>
+
+      <div className="mt-8 flex flex-wrap justify-center gap-6">
         {cards.map((card) => (
-          <div key={card.id} className="flex w-32 flex-col items-center gap-2">
-            <div className="relative aspect-[3/5] w-32 overflow-hidden rounded-lg border border-line-violet/40 bg-surface">
+          <div key={card.id} className="flex w-28 flex-col items-center gap-2">
+            <div className="relative aspect-[3/5] w-28 overflow-hidden rounded-lg border border-line-violet/40 bg-surface">
               <Image
                 src={card.artUrl}
                 alt={card.name}
                 fill
-                sizes="128px"
+                sizes="112px"
                 className="object-cover"
               />
             </div>
@@ -112,8 +122,7 @@ export default async function ReadingPage({ searchParams }: ReadingPageProps) {
       </section>
 
       <p className="mt-10 max-w-md text-center text-sm text-foreground-muted">
-        The live constellation walk isn&apos;t wired up yet — this is the
-        graph data it will trace.
+        Interpretive text generation isn&apos;t wired up yet.
       </p>
     </main>
   );
