@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+:root {
+  --background: #08070f;
+  --surface: #12101e;
+  --surface-raised: #1a1730;
+  --foreground: #f2eef9;
+  --foreground-muted: #a89fc4;
+  --star-gold: #e8c874;
+  --star-silver: #cdd3ec;
+  --line-violet: #6f5aa8;
+  --line-violet-bright: #a68fe0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-star-gold: var(--star-gold);
+  --color-star-silver: var(--star-silver);
+  --color-line-violet: var(--line-violet);
+  --color-line-violet-bright: var(--line-violet-bright);
+  --font-display: var(--font-cormorant);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, rgba(242, 238, 249, 0.35), transparent),
+    radial-gradient(1px 1px at 65% 15%, rgba(242, 238, 249, 0.25), transparent),
+    radial-gradient(1.5px 1.5px at 40% 70%, rgba(232, 200, 116, 0.3), transparent),
+    radial-gradient(1px 1px at 85% 55%, rgba(242, 238, 249, 0.3), transparent),
+    radial-gradient(1px 1px at 10% 85%, rgba(242, 238, 249, 0.2), transparent),
+    radial-gradient(1.5px 1.5px at 92% 80%, rgba(232, 200, 116, 0.25), transparent);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+}
