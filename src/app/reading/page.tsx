@@ -8,6 +8,7 @@ import { layoutCards } from "@/lib/tarot/layout";
 import { getCurrentTransits, type TransitSnapshot } from "@/lib/stellation/client";
 import { generateInterpretation } from "@/lib/tarot/interpret";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
+import { SaveReadingButton } from "@/components/SaveReadingButton";
 
 type ReadingPageProps = {
   searchParams: Promise<{ input?: string; question?: string }>;
@@ -133,6 +134,19 @@ export default async function ReadingPage({ searchParams }: ReadingPageProps) {
           {interpretation}
         </p>
       </section>
+
+      <div className="mt-10">
+        <SaveReadingButton
+          inputText={input}
+          question={question}
+          cardIds={cardIds}
+          positions={positions}
+          edges={edges}
+          walk={walk}
+          transits={transits}
+          interpretiveText={interpretation}
+        />
+      </div>
     </main>
   );
 }
