@@ -25,7 +25,12 @@ export const save = mutation({
     interpretiveText: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("readings", args);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    return await ctx.db.insert("readings", {
+      ...args,
+      userId: identity.tokenIdentifier,
+    });
   },
 });
 
@@ -33,5 +38,18 @@ export const get = query({
   args: { id: v.id("readings") },
   handler: async (ctx, args) => {
     return await ctx.db.get("readings", args.id);
+  },
+});
+
+export const listByUser = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    return await ctx.db
+      .query("readings")
+      .withIndex("by_userId", (q) => q.eq("userId", identity.tokenIdentifier))
+      .order("desc")
+      .take(50);
   },
 });

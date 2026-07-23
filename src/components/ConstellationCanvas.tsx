@@ -11,14 +11,63 @@ interface ConstellationCanvasProps {
   walk: WalkStep[];
 }
 
-const NODE_RADIUS = 30;
+const CARD_WIDTH = 34;
+const CARD_HEIGHT = CARD_WIDTH * (5 / 3);
+const CARD_CORNER_RADIUS = 6;
 const MS_PER_STEP = 700;
 const REVEAL_MS = 400;
+
+function drawImageCover(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+) {
+  const imgRatio = img.naturalWidth / img.naturalHeight;
+  const destRatio = w / h;
+  let sx = 0;
+  let sy = 0;
+  let sw = img.naturalWidth;
+  let sh = img.naturalHeight;
+  if (imgRatio > destRatio) {
+    sw = img.naturalHeight * destRatio;
+    sx = (img.naturalWidth - sw) / 2;
+  } else {
+    sh = img.naturalWidth / destRatio;
+    sy = (img.naturalHeight - sh) / 2;
+  }
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
 
 function easeOutBack(t: number): number {
   const c1 = 1.70158;
   const c3 = c1 + 1;
   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+function hashString(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (h * 31 + s.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+const FLOAT_AMPLITUDE_X = 4;
+const FLOAT_AMPLITUDE_Y = 5;
+
+function floatOffset(cardId: string, elapsedMs: number): { dx: number; dy: number } {
+  const hash = hashString(cardId);
+  const phaseX = ((hash % 1000) / 1000) * Math.PI * 2;
+  const phaseY = (((hash >> 8) % 1000) / 1000) * Math.PI * 2;
+  const periodX = 3200 + (hash % 700);
+  const periodY = 3800 + ((hash >> 4) % 700);
+  return {
+    dx: Math.sin(elapsedMs / periodX + phaseX) * FLOAT_AMPLITUDE_X,
+    dy: Math.cos(elapsedMs / periodY + phaseY) * FLOAT_AMPLITUDE_Y,
+  };
 }
 
 export function ConstellationCanvas({ cards, positions, walk }: ConstellationCanvasProps) {
@@ -63,14 +112,18 @@ export function ConstellationCanvas({ cards, positions, walk }: ConstellationCan
       const revealedSteps = Math.min(walk.length, Math.floor(progress * walk.length) + 1);
 
       for (let i = 1; i < revealedSteps; i++) {
-        const from = posById.get(walk[i - 1].cardId);
-        const to = posById.get(walk[i].cardId);
+        const fromId = walk[i - 1].cardId;
+        const toId = walk[i].cardId;
+        const from = posById.get(fromId);
+        const to = posById.get(toId);
         if (!from || !to) continue;
+        const fromFloat = floatOffset(fromId, elapsedMs);
+        const toFloat = floatOffset(toId, elapsedMs);
         const isRealEdge = walk[i].connectionWeight !== null;
         ctx.beginPath();
-        ctx.moveTo(from.x * sizeW, from.y * sizeH);
-        ctx.lineTo(to.x * sizeW, to.y * sizeH);
-        ctx.strokeStyle = isRealEdge ? "rgba(166, 143, 224, 0.85)" : "rgba(166, 143, 224, 0.3)";
+        ctx.moveTo(from.x * sizeW + fromFloat.dx, from.y * sizeH + fromFloat.dy);
+        ctx.lineTo(to.x * sizeW + toFloat.dx, to.y * sizeH + toFloat.dy);
+        ctx.strokeStyle = isRealEdge ? "rgba(129, 141, 184, 0.85)" : "rgba(129, 141, 184, 0.3)";
         ctx.lineWidth = isRealEdge ? 1.5 : 1;
         ctx.setLineDash(isRealEdge ? [] : [4, 4]);
         ctx.stroke();
@@ -86,38 +139,44 @@ export function ConstellationCanvas({ cards, positions, walk }: ConstellationCan
         const stepStart = i * MS_PER_STEP;
         const localProgress = Math.min(Math.max((elapsedMs - stepStart) / REVEAL_MS, 0), 1);
         const scale = easeOutBack(localProgress);
-        const r = NODE_RADIUS * scale;
-        if (r <= 0) continue;
+        const w = CARD_WIDTH * scale;
+        const h = CARD_HEIGHT * scale;
+        if (w <= 0 || h <= 0) continue;
 
-        const cx = pos.x * sizeW;
-        const cy = pos.y * sizeH;
+        const float = floatOffset(step.cardId, elapsedMs);
+        const cx = pos.x * sizeW + float.dx;
+        const cy = pos.y * sizeH + float.dy;
+        const glowR = Math.max(w, h) * 1.1;
 
-        const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 1.8);
-        glow.addColorStop(0, "rgba(232, 200, 116, 0.45)");
-        glow.addColorStop(1, "rgba(232, 200, 116, 0)");
+        const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
+        glow.addColorStop(0, "rgba(194, 163, 104, 0.45)");
+        glow.addColorStop(1, "rgba(194, 163, 104, 0)");
         ctx.fillStyle = glow;
         ctx.beginPath();
-        ctx.arc(cx, cy, r * 1.8, 0, Math.PI * 2);
+        ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
         ctx.fill();
+
+        const cardRadius = CARD_CORNER_RADIUS * scale;
+        const x = cx - w / 2;
+        const y = cy - h / 2;
 
         ctx.save();
         ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.closePath();
+        ctx.roundRect(x, y, w, h, cardRadius);
         ctx.clip();
         const img = images.get(card.id);
         if (img && img.complete && img.naturalWidth > 0) {
-          ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
+          drawImageCover(ctx, img, x, y, w, h);
         } else {
-          ctx.fillStyle = "#1a1730";
+          ctx.fillStyle = "#2f4945";
           ctx.fill();
         }
         ctx.restore();
 
-        ctx.strokeStyle = "rgba(205, 211, 236, 0.9)";
+        ctx.strokeStyle = "rgba(129, 141, 184, 0.9)";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.roundRect(x, y, w, h, cardRadius);
         ctx.stroke();
       }
     }

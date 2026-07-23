@@ -5,6 +5,9 @@ export default defineSchema({
   // A reading only exists here once the user explicitly saves it — ephemeral
   // readings are never inserted at all, so there's no separate "saved" flag.
   readings: defineTable({
+    // Clerk's identity.tokenIdentifier — the stable per-user key. Optional
+    // because readings saved before auth was added have no owner.
+    userId: v.optional(v.string()),
     inputText: v.string(),
     inputQuestion: v.optional(v.string()),
     cardIds: v.array(v.string()),
@@ -31,5 +34,5 @@ export default defineSchema({
     interpretiveText: v.string(),
     // No explicit createdAt — every document already carries the system
     // field _creationTime.
-  }),
+  }).index("by_userId", ["userId"]),
 });

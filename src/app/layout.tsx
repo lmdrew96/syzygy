@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Inter } from "next/font/google";
+import localFont from "next/font/local";
+import { ClerkProvider } from "@clerk/nextjs";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { TopBar } from "@/components/TopBar";
 import "./globals.css";
 
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+const wizardry = localFont({
+  src: "../fonts/Wizardry-9XP0.ttf",
+  variable: "--font-wizardry",
 });
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
+const ichigayaMincho = localFont({
+  src: "../fonts/Ichigayamincho-9MAv0.ttf",
+  variable: "--font-ichigaya-mincho",
 });
 
 export const metadata: Metadata = {
@@ -28,10 +29,15 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cormorant.variable} ${inter.variable} h-full antialiased`}
+      className={`${wizardry.variable} ${ichigayaMincho.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+        <ClerkProvider afterSignOutUrl="/">
+          <ConvexClientProvider>
+            <TopBar />
+            {children}
+          </ConvexClientProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

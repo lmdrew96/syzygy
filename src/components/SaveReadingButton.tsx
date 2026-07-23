@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "convex/react";
+import { useMutation, Authenticated, Unauthenticated, AuthLoading } from "convex/react";
+import { SignInButton } from "@clerk/nextjs";
 import { api } from "@convex/_generated/api";
 import type { MajorArcanaId } from "@/lib/tarot/majorArcana";
 import type { CardPosition } from "@/lib/tarot/layout";
@@ -24,7 +25,7 @@ interface SaveReadingButtonProps {
 export function SaveReadingButton(props: SaveReadingButtonProps) {
   if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
     return (
-      <p className="text-sm text-foreground-muted">
+      <p className="text-sm text-celestial-silver">
         Saving isn&apos;t configured yet.
       </p>
     );
@@ -33,6 +34,29 @@ export function SaveReadingButton(props: SaveReadingButtonProps) {
 }
 
 function ConvexSaveButton(props: SaveReadingButtonProps) {
+  return (
+    <>
+      <AuthLoading>
+        <p className="text-sm text-celestial-silver">Loading…</p>
+      </AuthLoading>
+      <Unauthenticated>
+        <SignInButton mode="modal">
+          <button
+            type="button"
+            className="rounded-md border border-dusty-plum/40 px-4 py-2 text-sm text-celestial-silver transition-colors hover:border-starlight-lilac hover:text-aged-parchment"
+          >
+            Sign in to save this reading
+          </button>
+        </SignInButton>
+      </Unauthenticated>
+      <Authenticated>
+        <SaveButtonInner {...props} />
+      </Authenticated>
+    </>
+  );
+}
+
+function SaveButtonInner(props: SaveReadingButtonProps) {
   const router = useRouter();
   const save = useMutation(api.readings.save);
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
@@ -65,7 +89,7 @@ function ConvexSaveButton(props: SaveReadingButtonProps) {
         type="button"
         onClick={handleSave}
         disabled={status === "saving"}
-        className="rounded-md border border-line-violet/40 px-4 py-2 text-sm text-foreground-muted transition-colors hover:border-line-violet-bright hover:text-foreground disabled:opacity-50"
+        className="rounded-md border border-dusty-plum/40 px-4 py-2 text-sm text-celestial-silver transition-colors hover:border-starlight-lilac hover:text-aged-parchment disabled:opacity-50"
       >
         {status === "saving" ? "Saving…" : "Save this reading"}
       </button>
