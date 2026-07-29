@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as natal from "../natal.js";
 import type * as readings from "../readings.js";
 
 import type {
@@ -17,6 +18,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  natal: typeof natal;
   readings: typeof readings;
 }>;
 
