@@ -28,6 +28,22 @@ export type ZodiacSign =
 
 export type Element = "Fire" | "Water" | "Air" | "Earth";
 
+/** Zodiac signs in ecliptic order — the single source of truth for angle math (signIndex * 30 + degreeInSign). */
+export const ZODIAC_ORDER: readonly ZodiacSign[] = [
+  "Aries",
+  "Taurus",
+  "Gemini",
+  "Cancer",
+  "Leo",
+  "Virgo",
+  "Libra",
+  "Scorpio",
+  "Sagittarius",
+  "Capricorn",
+  "Aquarius",
+  "Pisces",
+];
+
 export type Ruler =
   | { type: "planet"; planet: Planet }
   | { type: "zodiac"; sign: ZodiacSign; rulingPlanet: Planet }
