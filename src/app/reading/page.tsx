@@ -158,10 +158,11 @@ export default async function ReadingPage({ searchParams }: ReadingPageProps) {
       </section>
 
       {natal && (
-        <section className="mt-12 w-full max-w-md">
-          <p className="text-center text-xs uppercase tracking-[0.2em] text-celestial-silver">
-            Your chart today
-          </p>
+        <details className="group mt-12 w-full max-w-md">
+          <summary className="cursor-pointer list-none text-center text-xs uppercase tracking-[0.2em] text-celestial-silver [&::-webkit-details-marker]:hidden">
+            Your chart today{" "}
+            <span className="inline-block transition-transform group-open:rotate-180">▾</span>
+          </summary>
           {natalTransitAspects && natalTransitAspects.length > 0 ? (
             <ul className="mt-3 flex flex-col gap-1 text-sm text-celestial-silver">
               {natalTransitAspects.map((aspect, i) => (
@@ -175,7 +176,7 @@ export default async function ReadingPage({ searchParams }: ReadingPageProps) {
               No notable aspects between today&apos;s sky and your chart.
             </p>
           )}
-        </section>
+        </details>
       )}
 
       <section className="mt-12 max-w-lg">
