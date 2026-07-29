@@ -1,14 +1,48 @@
 import { redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
+import { fetchQuery } from "convex/nextjs";
+import { api } from "@convex/_generated/api";
 import { drawCards } from "@/lib/tarot/draw";
 import { getCard } from "@/lib/tarot/majorArcana";
 import { buildGraph } from "@/lib/tarot/graph";
 import { buildWalk } from "@/lib/tarot/walk";
 import { layoutCards } from "@/lib/tarot/layout";
-import { getCurrentTransits, type TransitSnapshot } from "@/lib/stellation/client";
+import { getCurrentTransits, type NatalChart, type TransitSnapshot } from "@/lib/stellation/client";
 import { generateInterpretation } from "@/lib/tarot/interpret";
+import {
+  computeNatalTransitAspects,
+  describeNatalTransitAspect,
+  type NatalTransitAspect,
+} from "@/lib/tarot/natalTransits";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
 import { CardGallery } from "@/components/CardGallery";
 import { SaveReadingButton } from "@/components/SaveReadingButton";
+
+/**
+ * Fetches the signed-in user's cached natal chart for a per-user Convex
+ * read from this server component. Requires forwarding the Clerk session
+ * token into fetchQuery (src/proxy.ts wires up clerkMiddleware so auth()
+ * works here) — returns null for anonymous users or anyone without a ready
+ * chart, same as having no birth data at all.
+ */
+async function fetchNatalChart(): Promise<NatalChart | null> {
+  if (!process.env.NEXT_PUBLIC_CONVEX_URL || !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    return null;
+  }
+  try {
+    const { getToken } = await auth();
+    const token = (await getToken({ template: "convex" })) ?? undefined;
+    if (!token) return null;
+
+    const profile = await fetchQuery(api.natal.getMyBirthProfile, {}, { token });
+    if (profile?.chartStatus === "ready" && profile.natalChart) {
+      return profile.natalChart as NatalChart;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 type ReadingPageProps = {
   searchParams: Promise<{ input?: string; question?: string }>;
@@ -33,12 +67,24 @@ export default async function ReadingPage({ searchParams }: ReadingPageProps) {
     transitError = "Couldn't reach Stellation for today's sky — is its backend running?";
   }
 
+  const natal = await fetchNatalChart();
+  const natalTransitAspects: NatalTransitAspect[] | null =
+    natal && transits ? computeNatalTransitAspects(natal, transits) : null;
+
   const edges = buildGraph(cardIds, transits).sort((a, b) => b.weight - a.weight);
   const walk = buildWalk(cardIds, edges);
   const positions = layoutCards(cardIds, seed);
   const walkCards = walk.map((step) => getCard(step.cardId));
 
-  const interpretation = await generateInterpretation(walkCards, transits, input, question, seed);
+  const interpretation = await generateInterpretation(
+    walkCards,
+    transits,
+    input,
+    question,
+    seed,
+    natal,
+    natalTransitAspects,
+  );
 
   return (
     <main className="flex flex-1 flex-col items-center px-6 py-16">
@@ -110,6 +156,27 @@ export default async function ReadingPage({ searchParams }: ReadingPageProps) {
           </ul>
         )}
       </section>
+
+      {natal && (
+        <section className="mt-12 w-full max-w-md">
+          <p className="text-center text-xs uppercase tracking-[0.2em] text-celestial-silver">
+            Your chart today
+          </p>
+          {natalTransitAspects && natalTransitAspects.length > 0 ? (
+            <ul className="mt-3 flex flex-col gap-1 text-sm text-celestial-silver">
+              {natalTransitAspects.map((aspect, i) => (
+                <li key={`${aspect.transitingPlanet}-${aspect.natalPlanet}-${i}`}>
+                  {describeNatalTransitAspect(aspect)}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-center text-sm text-celestial-silver">
+              No notable aspects between today&apos;s sky and your chart.
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="mt-12 max-w-lg">
         <p className="text-center text-xs uppercase tracking-[0.2em] text-celestial-silver">
