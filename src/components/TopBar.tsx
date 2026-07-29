@@ -33,6 +33,18 @@ function TopBarAuth() {
       {isSignedIn ? (
         <>
           <Link
+            href="/profile"
+            className="text-celestial-silver transition-colors hover:text-aged-parchment"
+          >
+            Birth data
+          </Link>
+          <Link
+            href="/chart"
+            className="text-celestial-silver transition-colors hover:text-aged-parchment"
+          >
+            My Chart
+          </Link>
+          <Link
             href="/reading/saved"
             className="text-celestial-silver transition-colors hover:text-aged-parchment"
           >
