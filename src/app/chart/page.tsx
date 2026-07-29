@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery, Authenticated, Unauthenticated, AuthLoading } from "convex/react";
+import { useState } from "react";
+import { useMutation, useQuery, Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { SignInButton } from "@clerk/nextjs";
 import { api } from "@convex/_generated/api";
 import type { NatalChart } from "@/lib/stellation/client";
@@ -36,6 +37,8 @@ export default function ChartPage() {
 
 function ChartContent() {
   const profile = useQuery(api.natal.getMyBirthProfile);
+  const retryChartFetch = useMutation(api.natal.retryChartFetch);
+  const [retrying, setRetrying] = useState(false);
 
   if (profile === undefined) {
     return <p className="mt-8 text-sm text-celestial-silver">Loading…</p>;
@@ -67,12 +70,21 @@ function ChartContent() {
         <p className="text-sm text-star-gold">
           {profile.chartError ?? "Couldn't compute your chart."}
         </p>
-        <Link
-          href="/profile"
-          className="text-sm text-starlight-lilac transition-colors hover:text-star-gold"
+        <button
+          type="button"
+          disabled={retrying}
+          onClick={async () => {
+            setRetrying(true);
+            try {
+              await retryChartFetch({});
+            } finally {
+              setRetrying(false);
+            }
+          }}
+          className="rounded-md border border-dusty-plum/40 px-4 py-2 text-sm text-celestial-silver transition-colors hover:border-starlight-lilac hover:text-aged-parchment disabled:opacity-50"
         >
-          Go to birth data →
-        </Link>
+          {retrying ? "Retrying…" : "Retry"}
+        </button>
       </div>
     );
   }
