@@ -35,4 +35,24 @@ export default defineSchema({
     // No explicit createdAt — every document already carries the system
     // field _creationTime.
   }).index("by_userId", ["userId"]),
+
+  // One profile per user, enforced at the mutation layer (Convex has no
+  // unique index) — saveBirthData upserts by looking up by_userId first.
+  natalProfiles: defineTable({
+    userId: v.string(),
+    birthDate: v.string(),
+    birthTime: v.optional(v.string()),
+    birthTimeUnknown: v.boolean(),
+    birthPlaceLabel: v.string(),
+    birthLat: v.number(),
+    birthLng: v.number(),
+    houseSystem: v.string(),
+    consentedAt: v.string(),
+    chartStatus: v.union(v.literal("pending"), v.literal("ready"), v.literal("error")),
+    chartError: v.optional(v.string()),
+    // The computed NatalChart, cached on write — never re-fetched from
+    // Stellation on read.
+    natalChart: v.optional(v.any()),
+    chartComputedAt: v.optional(v.string()),
+  }).index("by_userId", ["userId"]),
 });
